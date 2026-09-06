@@ -19,9 +19,10 @@ class LogicalOp(str, Enum):
 
 class SubCondition(BaseModel):
     field: str = Field(..., description="Field name being compared")
-    derivation: Optional[str] = Field(None, description="Formula if computed")
+    derivation: Optional[str] = Field(None, description="Valid ANSI SQL expression using glossary fields, e.g., 'ABS(po_amount - grand_total_amount) / po_amount'")
     op: ComparisonOp
-    value: str | float = Field(..., description="Threshold value")
+    value: Optional[str | float] = Field(None, description="Static threshold value (leave null if comparing to a field)")
+    compare_to_field: Optional[str] = Field(None, description="Use this if comparing to another glossary field instead of a static value")
 
 
 class RuleCondition(BaseModel):
@@ -49,7 +50,7 @@ class Rule(BaseModel):
     source_clauses: list[str]
     description: str
     condition: RuleCondition
-    action: Action
+    actions: list[Action] = Field(..., description="List of actions triggered by this condition")
     exceptions: list[RuleCondition] = Field(default_factory=list)
     notifications: list[Notification] = Field(default_factory=list)
     conflict_group: Optional[str] = None

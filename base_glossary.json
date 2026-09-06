@@ -1,0 +1,22 @@
+{
+  "current_processing_date": "The current system date when the processing or rule engine runs",
+  "system_base_currency": "The default currency of the accounting system",
+  "invoice_number": "Unique identifier present on the invoice face",
+  "invoice_date": "Date of issuance printed on the invoice",
+  "grand_total_amount": "Total monetary value of the invoice including all taxes",
+  "invoice_unit_rate": "Unit price of an item as stated on the invoice",
+  "line_item_quantity": "Quantity of a specific item on the invoice",
+  "qr_code_present": "Boolean flag indicating presence of a valid e-invoice QR code",
+  "po_number": "Reference number of the associated purchase order",
+  "po_amount": "Total monetary value of the purchase order",
+  "po_type": "Categorization of PO (e.g., goods-based or services-based)",
+  "po_unit_rate": "Unit price of an item on the purchase order",
+  "po_line_item_quantity": "Quantity of a specific item on the purchase order",
+  "grn_number": "Reference number of the Goods Receipt Note (GRN)",
+  "grn_date": "Date the goods were received as per the GRN",
+  "grn_quantity": "Quantity of goods received as per the GRN",
+  "vendor_gstin": "GST identification number of the vendor",
+  "vendor_pan": "Permanent Account Number of the vendor",
+  "buyer_gstin": "GST identification number of the purchasing company (buyer)",
+  "vendor_on_watchlist": "Boolean flag indicating if the vendor is on an internal compliance or watch list"
+}

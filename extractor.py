@@ -17,6 +17,7 @@ from google.genai import types
 from google.genai.errors import ClientError
 from dotenv import load_dotenv
 from pydantic import BaseModel, Field
+from typing import Optional
 
 from schema import ComparisonOp, LogicalOp
 
@@ -36,10 +37,10 @@ SECONDS_BETWEEN_CALLS = 4.5
 
 class SubCondition(BaseModel):
     field: str = Field(..., description="Must be an exact glossary field name")
-    derivation: str | None = Field(None, description="Formula only, e.g. '(a - b) / b * 100'")
+    derivation: str | None = Field(None, description="Valid ANSI SQL expression using glossary fields, e.g., 'ABS(po_amount - grand_total_amount) / po_amount'")
     op: ComparisonOp
-    value: str | float
-
+    value: str | float | None = None
+    compare_to_field: str | None = None
 
 class RuleCondition(BaseModel):
     operator: LogicalOp
@@ -62,7 +63,7 @@ class Notification(BaseModel):
 class ExtractedRule(BaseModel):
     description: str
     condition: RuleCondition
-    action: Action
+    actions: list[Action]
     exceptions: list[RuleCondition] = Field(default_factory=list)
     notifications: list[Notification] = Field(default_factory=list)
     confidence: float = Field(..., ge=0.0, le=1.0)
@@ -93,14 +94,6 @@ Clause Text:
 Available field names (use ONLY these exact names — no aliases, no abbreviations):
 {glossary_text}
 
-Available actions (use ONLY these exact words in THEN blocks):
-  REJECT      — invoice is rejected outright
-  HOLD        — invoice is paused pending resolution
-  FLAG        — invoice is marked for attention but not stopped
-  ESCALATE    — invoice is routed to a higher approver
-  AUTO_APPROVE — invoice passes this check automatically
-  NOTIFY      — a notification/email is triggered
-
 STEP 1 — Before writing pseudo-code, answer these two questions in one line each:
   Q1: Does this clause explicitly state a condition AND a consequence/action?
       (yes = has both; no = missing one or both)
@@ -115,8 +108,8 @@ STEP 2 — Write the pseudo-code following these strict rules:
   something is missing, or only says what happens when it matches), write ONLY that IF/THEN.
   Do NOT add an ELSE branch — the other side belongs to a different clause.
 - Use ONLY the field names listed above — no aliases, no abbreviations, no new names.
-- For computed values, write the full formula inline using glossary field names:
-  e.g. IF (grand_total_amount - po_amount) / po_amount * 100 >= 10 THEN ...
+- For computed values, use STRICT ANSI SQL expression syntax inline (e.g., ABS(), COALESCE(), standard arithmetic) using exact glossary field names:
+  e.g. IF ABS(grand_total_amount - po_amount) / po_amount >= 0.10 THEN ...
 - Boundary wording matters precisely: "10% or more" = >=, "exceeds 10%" = >, "within 1%" = abs(...) <= 0.01.
 - Multiple independent conditions in one clause = multiple separate IF/THEN blocks.
 - AND conditions: IF condition1 AND condition2 THEN ...
@@ -147,13 +140,14 @@ Rules for conversion:
 - "NO_RULE" or no IF/THEN blocks = return an empty rules list.
 - condition.operator = "AND" or "OR" matching the pseudo-code logic.
 - Each sub-condition in the IF part becomes one item in condition.conditions.
-- If a condition uses a formula, put the formula in "derivation" and the primary
-  field being evaluated as "field".
+- If a condition uses a formula, extract it as a strictly valid ANSI SQL expression in "derivation", and put the primary field being evaluated as "field".
 - action.type MUST be exactly one of the action names from the vocabulary above.
   Match the pseudo-code THEN statement to the closest action in the list.
 - "confidence" = how clearly the pseudo-code maps to a deterministic rule (0.0-1.0).
   Lower it if the pseudo-code was ambiguous or the Q1/Q2 analysis flagged uncertainty.
 - Also return the pseudo_code field unchanged (including Q1/Q2 lines if present).
+- If a condition compares a field to a static number or literal word, put it in "value". 
+- If a condition compares a field to ANOTHER dynamic field or system variable (like current_processing_date), put that variable name in "compare_to_field" and leave "value" null.
 
 Return only JSON matching the schema.
 """
